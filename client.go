@@ -3,9 +3,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 const (
@@ -14,25 +16,54 @@ const (
 	SERVER_TYPE = "tcp"
 )
 
+var users = make([]string, 1)
+
+func fetchAllUsers(conn net.Conn) {
+	buffer := make([]byte, 1024)
+	mLen, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading;", err.Error())
+	}
+	if err = json.Unmarshal(buffer[:mLen], &users); err != nil {
+		panic(err)
+	}
+}
+
+func processInput() string {
+	var reader = bufio.NewReader(os.Stdin)
+	userInput, _ := reader.ReadString('\n')
+	userInput = strings.Trim(userInput, "\n")
+	return userInput
+}
 func main() {
 	// establish connection
 	connection, err := net.Dial(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
-
 	if err != nil {
 		panic(err)
 	}
 
+	//registering
 	fmt.Printf("Enter your name:")
-	var reader = bufio.NewReader(os.Stdin)
-	name, _ := reader.ReadString('\n')
+	userName := processInput()
+	_, err = connection.Write([]byte("@reg:" + userName))
 	go processServerMsg(connection)
+	processClientMsg(connection)
+}
+func processClientMsg(conn net.Conn) {
 
-	// send some data
 	for {
-		fmt.Printf("%s:", name)
-		var reader = bufio.NewReader(os.Stdin)
-		message, _ := reader.ReadString('\n')
-		_, err = connection.Write([]byte(message))
+		fmt.Printf("%s", "=>:")
+		message := processInput()
+		command := strings.Split(message, ":")
+		if command[0] != "@all" &&
+			command[0] != "@to" &&
+			command[0] != "@getall" {
+			continue
+		}
+		_, err := conn.Write([]byte(message))
+		if err != nil {
+			fmt.Println("Error sending message to server")
+		}
 	}
 }
 func processServerMsg(serverConn net.Conn) {
@@ -42,6 +73,7 @@ func processServerMsg(serverConn net.Conn) {
 		if err != nil {
 			fmt.Println("Error reading;", err.Error())
 		}
-		fmt.Println(string(buffer[:mLen]))
+		fmt.Println("\n" + string(buffer[:mLen]))
+		fmt.Printf("%s", "=>:")
 	}
 }
