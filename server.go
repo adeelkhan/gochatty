@@ -23,17 +23,6 @@ var user_count = 0
 var users = make(map[string]User, 1)
 
 func main() {
-
-	// duummy users
-	// users["adeel"] = User{
-	// 	Name: "adeel",
-	// 	conn: nil,
-	// }
-	// users["wahaj"] = User{
-	// 	Name: "wahaj",
-	// 	conn: nil,
-	// }
-
 	fmt.Println("Chatserver running... :)")
 	server, err := net.Listen(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
 	if err != nil {
